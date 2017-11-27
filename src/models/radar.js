@@ -7,18 +7,38 @@ const _ = {
   sortBy: require('lodash/sortBy')
 };
 
-const Radar = function() {
-  var self, quadrants, blipNumber, addingQuadrant;
+const Radar = function(numberOfQuadrants) {
+  var self, quadrants, blipNumber, addingQuadrant, quadrantItem, quadrantsAngle, currentAngle, quadrantLabels;
 
   blipNumber = 0;
   addingQuadrant = 0;
   quadrants = [
-    {order: 'first', startAngle: 90},
-    {order: 'second', startAngle: 0},
-    {order: 'third', startAngle: -90},
-    {order: 'fourth', startAngle: -180}
+  ];
+  quadrantLabels = [
+      'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eight'
   ];
   self = {};
+
+  //  quadrants = [
+//    {order: 'first', startAngle: 90},
+//    {order: 'second', startAngle: 0},
+//    {order: 'third', startAngle: -90},
+//    {order: 'fourth', startAngle: -180}
+    // ];
+
+  self.numberOfQuadrants = numberOfQuadrants;
+  quadrantsAngle = 360 / numberOfQuadrants;
+
+  currentAngle = 0;
+  for (var i = 0; i<numberOfQuadrants; i++) {
+    quadrantItem = {order: quadrantLabels[i],
+                    startAngle: currentAngle, // start position angle in the circle
+                    endAngle: currentAngle + quadrantsAngle, // end position angle in the circle
+                    absoluteAngle: quadrantsAngle}; // angle of the pie
+
+    quadrants.push(quadrantItem);
+    currentAngle = quadrantItem.endAngle;
+  }
 
   function setNumbers(blips) {
     blips.forEach(function (blip) {
@@ -27,7 +47,7 @@ const Radar = function() {
   }
 
   self.addQuadrant = function (quadrant) {
-    if(addingQuadrant >= 4) {
+    if(addingQuadrant >= 8) {
       throw new MalformedDataError(ExceptionMessages.TOO_MANY_QUADRANTS);
     }
     quadrants[addingQuadrant].quadrant = quadrant;
@@ -36,7 +56,7 @@ const Radar = function() {
   };
 
    function allQuadrants() {
-    if (addingQuadrant < 4)
+    if (addingQuadrant < self.numberOfQuadrants)
       throw new MalformedDataError(ExceptionMessages.LESS_THAN_FOUR_QUADRANTS);
 
     return _.map(quadrants, 'quadrant');

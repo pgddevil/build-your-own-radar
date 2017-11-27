@@ -33,11 +33,48 @@ const Radar = function (size, radar) {
     return Math.round(size / 2);
   }
 
+  function radius() {
+    return Math.round(size / 2);
+  }
+
   function toRadian(angleInDegrees) {
     return Math.PI * angleInDegrees / 180;
   }
 
   function plotLines(quadrantGroup, quadrant) {
+    var x1 = center();
+    var y1 = center();
+
+    var x2 = center() + Math.sin(toRadian(quadrant.startAngle)) * radius();
+    var y2 = center() - Math.cos(toRadian(quadrant.startAngle)) * radius();
+
+    quadrantGroup.append('line')
+        .attr('x1', x1).attr('x2', x2)
+        .attr('y1', y1).attr('y2', y2)
+        .attr('stroke-width', 10)
+        .attr('stroke', 'black');
+
+    x2 = center() + Math.sin(toRadian(quadrant.endAngle)) * radius();
+    y2 = center() - Math.cos(toRadian(quadrant.endAngle)) * radius();
+
+    quadrantGroup.append('line')
+        .attr('x1', x1).attr('x2', x2)
+        .attr('y1', y1).attr('y2', y2)
+        .attr('stroke-width', 10)
+        .attr('stroke', 'black');
+
+      //    var x2 = center() + Math.cos(Math.PI / 8) * radius();
+//    var y2 = radius() - Math.sin(Math.PI / 8) * radius();
+
+//    alert(String.concat("x2=", x2.toString(), ", y2=", y2.toString()));
+
+//    var x2 = center() + Math.cos(toRadian(quadrant.startAngle)) * radius();
+//    var y2 = center() - Math.sin(toRadian(quadrant.startAngle)) * radius();
+
+
+//    alert(y);
+  //  alert(x);
+    /*
     var startX = size * (1 - (-Math.sin(toRadian(quadrant.startAngle)) + 1) / 2);
     var endX = size * (1 - (-Math.sin(toRadian(quadrant.startAngle - 90)) + 1) / 2);
 
@@ -49,16 +86,24 @@ const Radar = function (size, radar) {
       endY = startY;
       startY = aux;
     }
-
+*/
+//    alert(startY);
+//    alert(endY);
+    quadrantGroup.append('line')
+        .attr('x1', x1).attr('x2', x2)
+        .attr('y1', y1).attr('y2', y2)
+        .attr('stroke-width', 10)
+        .attr('stroke', 'black');
+      /*
     quadrantGroup.append('line')
       .attr('x1', center()).attr('x2', center())
       .attr('y1', startY - 2).attr('y2', endY + 2)
       .attr('stroke-width', 10);
-
-    quadrantGroup.append('line')
-      .attr('x1', endX).attr('y1', center())
-      .attr('x2', startX).attr('y2', center())
-      .attr('stroke-width', 10);
+*/
+//    quadrantGroup.append('line')
+//      .attr('x1', endX).attr('y1', center())
+//      .attr('x2', startX).attr('y2', center())
+//      .attr('stroke-width', 10);
   }
 
   function plotQuadrant(rings, quadrant) {
@@ -73,7 +118,7 @@ const Radar = function (size, radar) {
         .innerRadius(ringCalculator.getRadius(i))
         .outerRadius(ringCalculator.getRadius(i + 1))
         .startAngle(toRadian(quadrant.startAngle))
-        .endAngle(toRadian(quadrant.startAngle - 90));
+        .endAngle(toRadian(quadrant.endAngle));
 
       quadrantGroup.append('path')
         .attr('d', arc)
@@ -434,10 +479,9 @@ const Radar = function (size, radar) {
         .on('click', selectQuadrant.bind({}, quadrant.order, quadrant.startAngle));
     }
 
-    _.each([0, 1, 2, 3], function (i) {
-      addButton(quadrants[i]);
-    });
-
+    for (i=0; i<quadrants.length; i++) {
+        addButton(quadrants[i]);
+    }
 
     header.append('div')
       .classed('print-radar button no-capitalize', true)
@@ -542,12 +586,37 @@ const Radar = function (size, radar) {
     svg = radarElement.append("svg").call(tip);
     svg.attr('id', 'radar-plot').attr('width', size).attr('height', size + 14);
 
-    _.each(quadrants, function (quadrant) {
-      var quadrantGroup = plotQuadrant(rings, quadrant);
-      plotLines(quadrantGroup, quadrant);
-      plotTexts(quadrantGroup, rings, quadrant);
-      plotBlips(quadrantGroup, rings, quadrant);
-    });
+    var quadrantGroup = plotQuadrant(rings, quadrants[0]);
+    plotLines(quadrantGroup, quadrants[0]);
+    plotTexts(quadrantGroup, rings, quadrants[0]);
+
+    quadrantGroup = plotQuadrant(rings, quadrants[1]);
+    plotLines(quadrantGroup, quadrants[1]);
+
+    quadrantGroup = plotQuadrant(rings, quadrants[2]);
+    plotLines(quadrantGroup, quadrants[2]);
+
+    quadrantGroup = plotQuadrant(rings, quadrants[3]);
+    plotLines(quadrantGroup, quadrants[3]);
+
+      quadrantGroup = plotQuadrant(rings, quadrants[4]);
+      plotLines(quadrantGroup, quadrants[4]);
+
+      quadrantGroup = plotQuadrant(rings, quadrants[5]);
+      plotLines(quadrantGroup, quadrants[5]);
+
+      quadrantGroup = plotQuadrant(rings, quadrants[6]);
+      plotLines(quadrantGroup, quadrants[6]);
+
+      quadrantGroup = plotQuadrant(rings, quadrants[7]);
+      plotLines(quadrantGroup, quadrants[7]);
+
+      //_.each(quadrants, function (quadrant) {
+     // var quadrantGroup = plotQuadrant(rings, quadrant);
+     // plotLines(quadrantGroup, quadrant);
+      //plotTexts(quadrantGroup, rings, quadrant);
+      //plotBlips(quadrantGroup, rings, quadrant);
+    //});
 
     plotRadarFooter();
   };

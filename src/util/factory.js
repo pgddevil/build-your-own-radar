@@ -25,7 +25,7 @@ const plotRadar = function (title, blips) {
 
     var rings = _.map(_.uniqBy(blips, 'ring'), 'ring');
     var ringMap = {};
-    var maxRings = 4;
+    var maxRings = 5;
 
     _.each(rings, function (ringName, i) {
         if (i == maxRings) {
@@ -35,14 +35,16 @@ const plotRadar = function (title, blips) {
     });
 
     var quadrants = {};
+    var quadrantCount = 0;
     _.each(blips, function (blip) {
         if (!quadrants[blip.quadrant]) {
             quadrants[blip.quadrant] = new Quadrant(_.capitalize(blip.quadrant));
+            quadrantCount++;
         }
         quadrants[blip.quadrant].add(new Blip(blip.name, ringMap[blip.ring], blip.isNew.toLowerCase() === 'true', blip.topic, blip.description))
     });
 
-    var radar = new Radar();
+    var radar = new Radar(quadrantCount);
     _.each(quadrants, function (quadrant) {
         radar.addQuadrant(quadrant)
     });
