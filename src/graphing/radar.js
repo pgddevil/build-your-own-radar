@@ -63,47 +63,6 @@ const Radar = function (size, radar) {
         .attr('stroke-width', 10)
         .attr('stroke', 'black');
 
-      //    var x2 = center() + Math.cos(Math.PI / 8) * radius();
-//    var y2 = radius() - Math.sin(Math.PI / 8) * radius();
-
-//    alert(String.concat("x2=", x2.toString(), ", y2=", y2.toString()));
-
-//    var x2 = center() + Math.cos(toRadian(quadrant.startAngle)) * radius();
-//    var y2 = center() - Math.sin(toRadian(quadrant.startAngle)) * radius();
-
-
-//    alert(y);
-  //  alert(x);
-    /*
-    var startX = size * (1 - (-Math.sin(toRadian(quadrant.startAngle)) + 1) / 2);
-    var endX = size * (1 - (-Math.sin(toRadian(quadrant.startAngle - 90)) + 1) / 2);
-
-    var startY = size * (1 - (Math.cos(toRadian(quadrant.startAngle)) + 1) / 2);
-    var endY = size * (1 - (Math.cos(toRadian(quadrant.startAngle - 90)) + 1) / 2);
-
-    if (startY > endY) {
-      var aux = endY;
-      endY = startY;
-      startY = aux;
-    }
-*/
-//    alert(startY);
-//    alert(endY);
-    quadrantGroup.append('line')
-        .attr('x1', x1).attr('x2', x2)
-        .attr('y1', y1).attr('y2', y2)
-        .attr('stroke-width', 10)
-        .attr('stroke', 'black');
-      /*
-    quadrantGroup.append('line')
-      .attr('x1', center()).attr('x2', center())
-      .attr('y1', startY - 2).attr('y2', endY + 2)
-      .attr('stroke-width', 10);
-*/
-//    quadrantGroup.append('line')
-//      .attr('x1', endX).attr('y1', center())
-//      .attr('x2', startX).attr('y2', center())
-//      .attr('stroke-width', 10);
   }
 
   function plotQuadrant(rings, quadrant) {
@@ -179,17 +138,25 @@ const Radar = function (size, radar) {
     return table.append('ul');
   }
 
-  function calculateBlipCoordinates(blip, chance, minRadius, maxRadius, startAngle) {
-    var adjustX = Math.sin(toRadian(startAngle)) - Math.cos(toRadian(startAngle));
-    var adjustY = -Math.cos(toRadian(startAngle)) - Math.sin(toRadian(startAngle));
+  function calculateBlipCoordinates(blip, chance, minRadius, maxRadius, startAngle, endAngle) {
 
+    // this could be taken from quadrantWrapper.absoluteAngle instead of recalculating
+    var quadrantAngle = Math.abs(endAngle - startAngle);
+
+    // calculate a random distance from center within the scope of the ring (minRadius to maxRadius)
     var radius = chance.floating({min: minRadius + blip.width / 2, max: maxRadius - blip.width / 2});
+    // calculate the offset angle (from the border of the quadrant) that will fit the blip image
+    // without overflow
     var angleDelta = Math.asin(blip.width / 2 / radius) * 180 / Math.PI;
-    angleDelta = angleDelta > 45 ? 45 : angleDelta;
-    var angle = toRadian(chance.integer({min: angleDelta, max: 90 - angleDelta}));
+    angleDelta = angleDelta > (quadrantAngle/2) ? (quadrantAngle/2) : angleDelta;
+    // calculate the widest angle that can accomodate the blip image relative to distance from center
+    // this angle is always withing the bound of the quadrant angle
+    var angleDeg = chance.integer({min: startAngle + angleDelta, max: endAngle - angleDelta});
+    var angle = toRadian(angleDeg);
 
-    var x = center() + radius * Math.cos(angle) * adjustX;
-    var y = center() + radius * Math.sin(angle) * adjustY;
+    // calculate the x and y coordinates based on the angle and radius
+    var x = center() + Math.sin(angle) * radius;
+    var y = center() - Math.cos(angle) * radius;
 
     return [x, y];
   }
@@ -201,12 +168,12 @@ const Radar = function (size, radar) {
   }
 
   function plotBlips(quadrantGroup, rings, quadrantWrapper) {
-    var blips, quadrant, startAngle, order;
+    var blips, quadrant, startAngle, endAngle, order;
 
     quadrant = quadrantWrapper.quadrant;
     startAngle = quadrantWrapper.startAngle;
+    endAngle = quadrantWrapper.endAngle;
     order = quadrantWrapper.order;
-
     d3.select('.quadrant-table.' + order)
       .append('h2')
       .attr('class', 'quadrant-table__name')
@@ -243,6 +210,7 @@ const Radar = function (size, radar) {
           minRadius,
           maxRadius,
           startAngle,
+          endAngle,
           allBlipCoordinatesInRing);
 
         allBlipCoordinatesInRing.push(coordinates);
@@ -251,15 +219,16 @@ const Radar = function (size, radar) {
     });
   }
 
-  function findBlipCoordinates(blip, minRadius, maxRadius, startAngle, allBlipCoordinatesInRing) {
+  function findBlipCoordinates(blip, minRadius, maxRadius, startAngle, endAngle, allBlipCoordinatesInRing) {
     const maxIterations = 200;
-    var coordinates = calculateBlipCoordinates(blip, chance, minRadius, maxRadius, startAngle);
+
+    var coordinates = calculateBlipCoordinates(blip, chance, minRadius, maxRadius, startAngle, endAngle);
     var iterationCounter = 0;
     var foundAPlace = false;
 
     while (iterationCounter < maxIterations) {
       if (thereIsCollision(blip, coordinates, allBlipCoordinatesInRing)) {
-        coordinates = calculateBlipCoordinates(blip, chance, minRadius, maxRadius, startAngle);
+        coordinates = calculateBlipCoordinates(blip, chance, minRadius, maxRadius, startAngle, endAngle);
       } else {
         foundAPlace = true;
         break;
@@ -269,7 +238,7 @@ const Radar = function (size, radar) {
 
     if (!foundAPlace && blip.width > MIN_BLIP_WIDTH) {
       blip.width = blip.width - 1;
-      return findBlipCoordinates(blip, minRadius, maxRadius, startAngle, allBlipCoordinatesInRing);
+      return findBlipCoordinates(blip, minRadius, maxRadius, startAngle, endAngle, allBlipCoordinatesInRing);
     } else {
       return coordinates;
     }
@@ -586,37 +555,17 @@ const Radar = function (size, radar) {
     svg = radarElement.append("svg").call(tip);
     svg.attr('id', 'radar-plot').attr('width', size).attr('height', size + 14);
 
-    var quadrantGroup = plotQuadrant(rings, quadrants[0]);
-    plotLines(quadrantGroup, quadrants[0]);
-    plotTexts(quadrantGroup, rings, quadrants[0]);
+      // var quadrantGroup = plotQuadrant(rings, quadrants[0]);
+      // plotLines(quadrantGroup, quadrants[0]);
+      // //plotTexts(quadrantGroup, rings, quadrant);
+      // plotBlips(quadrantGroup, rings, quadrants[0]);
 
-    quadrantGroup = plotQuadrant(rings, quadrants[1]);
-    plotLines(quadrantGroup, quadrants[1]);
-
-    quadrantGroup = plotQuadrant(rings, quadrants[2]);
-    plotLines(quadrantGroup, quadrants[2]);
-
-    quadrantGroup = plotQuadrant(rings, quadrants[3]);
-    plotLines(quadrantGroup, quadrants[3]);
-
-      quadrantGroup = plotQuadrant(rings, quadrants[4]);
-      plotLines(quadrantGroup, quadrants[4]);
-
-      quadrantGroup = plotQuadrant(rings, quadrants[5]);
-      plotLines(quadrantGroup, quadrants[5]);
-
-      quadrantGroup = plotQuadrant(rings, quadrants[6]);
-      plotLines(quadrantGroup, quadrants[6]);
-
-      quadrantGroup = plotQuadrant(rings, quadrants[7]);
-      plotLines(quadrantGroup, quadrants[7]);
-
-      //_.each(quadrants, function (quadrant) {
-     // var quadrantGroup = plotQuadrant(rings, quadrant);
-     // plotLines(quadrantGroup, quadrant);
+      _.each(quadrants, function (quadrant) {
+      var quadrantGroup = plotQuadrant(rings, quadrant);
+      plotLines(quadrantGroup, quadrant);
       //plotTexts(quadrantGroup, rings, quadrant);
-      //plotBlips(quadrantGroup, rings, quadrant);
-    //});
+      plotBlips(quadrantGroup, rings, quadrant);
+    });
 
     plotRadarFooter();
   };
